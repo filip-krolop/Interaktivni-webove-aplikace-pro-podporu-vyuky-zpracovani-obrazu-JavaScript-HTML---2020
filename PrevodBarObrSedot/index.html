@@ -1,0 +1,312 @@
+<!DOCTYPE HTML>
+<!-- Applet sestavil: Filip Krolop -->
+<!-- Applet byl sestaven v rámci bakalářské práce na téma "Interaktivní webové aplikace pro podporu výuky zpracování obrazu" v roce 2019/2020. Prohlašuji, že jsem tento applet zpracoval samostatně, s využitím volně dostupných zdrojů a konzultací s vedoucím mé práce, inspiraci jsem však čerpal také ze studia zdrojového kódu/dekompilovaného kódu původního appletu napsaného v jazyce Java od autora Jindřicha Hlavatého. Z toho důvodu se mohou objevovat podobnosti v některých částech kódu, zejména těch částech, které se zaobírají implementací matematických vztahů. -->
+<!-- http://www.utko.feec.vutbr.cz/~rajmic/applets/StupneSedi.html -->
+<!-- https://www.vutbr.cz/studenti/zav-prace/detail/66567 -->
+<html>
+  <head>
+	<meta charset="UTF-8">
+
+	<style>
+		#blendingOpt {
+			display: none;
+		}
+	</style>
+	<script>
+	/*K vytvoření tohoto appletu byly využity části ukázkového kódu pro demonstraci JavaScriptové metody getImageData prostředictvím elementu Canvas:
+	1) https://www.w3schools.com/tags/canvas_getimagedata.asp, konkrétně pak: https://www.w3schools.com/tags/tryit.asp?filename=tryhtml5_canvas_getimagedata2
+	2) https://dev.opera.com/articles/html5-canvas-basics/#pixelbasedmanipulation (by Mihai Sucan, 2009)
+	*/
+	function disableOptions(state) {
+		document.getElementById('sliderRed').disabled = state;
+		document.getElementById('sliderRedValue').disabled = state;
+		document.getElementById('sliderGreen').disabled = state;
+		document.getElementById('sliderGreenValue').disabled = state;
+		document.getElementById('sliderBlue').disabled = state;
+		document.getElementById('sliderBlueValue').disabled = state;
+		
+		if (state == false) {
+			document.getElementById('blendingOpt').style.display = "block";
+		}
+		else {
+			document.getElementById('blendingOpt').style.display = "none";
+		}
+	}
+	
+	function blendingSum() {
+		document.getElementById('blendingSum').innerHTML = parseInt(document.getElementById('sliderRed').value) + parseInt(document.getElementById('sliderGreen').value) + parseInt(document.getElementById('sliderBlue').value) + "%";
+	}
+	
+	function setOrigImg(select){
+		var origImage = document.getElementsByName("ImgORIG")[0];
+		//origImage.src = select.options[select.selectedIndex].value;
+		
+		switch (select.options[select.selectedIndex].value) {
+			case "lod":
+				origImage.src = 'images/Lod.jpg';
+				break;
+			case "motorky":
+				origImage.src = 'images/Motorky.jpg';
+				break;
+			case "paleta":
+				origImage.src = 'images/Paleta.jpg';
+				break;
+			case "papousci":
+				origImage.src = 'images/Papousci.jpg';
+				break;
+			case "rgb":
+				origImage.src = 'images/RGB.jpg';
+				break;
+			default:
+				origImage.src = 'images/Lod.jpg';
+				break;
+		}
+	}
+	
+function applyFilter (val, met) {
+	
+	var canvasFltr = document.getElementById("CanvasFLTR").getContext("2d");
+	var img = new Image();
+	var x = 0, y = 0;
+
+	switch (val) {
+		case "lod":
+			img.src = 'images/Lod.jpg';
+			break;
+		case "motorky":
+			img.src = 'images/Motorky.jpg';
+			break;
+		case "paleta":
+			img.src = 'images/Paleta.jpg';
+			break;
+		case "papousci":
+			img.src = 'images/Papousci.jpg';
+			break;
+		case "rgb":
+			img.src = 'images/RGB.jpg';
+			break;
+		default:
+			img.src = 'images/Lod.jpg';
+			break;
+	}
+	
+	//console.log(document.getElementById("ImgORIG"));
+	img.onload = function() {
+		canvasFltr.drawImage(this, x, y);
+		
+		//console.log(document.getElementById("CanvasFLTR"));
+		var imgd = canvasFltr.getImageData(x, y, this.width, this.height);
+		var pix = imgd.data;
+		//console.log(pix);
+		var var_R, var_G, var_B, Y, var_Y; 
+		/* referenční hodnoty pro prostor XYZ */
+		var ref_X = 95.047;
+		var ref_Y = 100.0;
+		var ref_Z = 108.883;
+		var CL, Ca, Cb;
+		/* výchozí pozice sliderů */
+		var rgb, redS = 33, greenS = 34, blueS = 33;
+		
+		switch (met) {
+			default: case "prumerovani":
+				/*Metoda průměrování: sečteme hodnoty jednotlivých barevných kanálů (R, G, B) v dekadickém vyjádření a podělíme třemi. Výslednou barvu přiřadíme všem 3 kanálům R,G,B stejně.
+				Inspirace: https://www.coursera.org/lecture/duke-programming-web/convert-image-to-grayscale-yYRvg
+				*/
+				for (var i = 0, n = pix.length; i < n; i += 4) {
+				  pix[i  ] = Math.round( (pix[i  ] + pix[i+1] + pix[i+2])/3 ); // červený pixel   
+				  //console.log(pix[i  ]);
+				  pix[i+1] = pix[i  ]; // zelený=červený
+				  pix[i+2] = pix[i  ]; // modrý=zelený=červený
+				}
+				break;
+			case "prevod":
+				/* Inspirace:
+				1) https://gist.github.com/manojpandey/f5ece715132c572c80421febebaf66ae
+				2) http://www.mira-project.org/MIRA-doc/Color_8h_source.html
+				3) https://en.wikipedia.org/wiki/SRGB
+				4) https://stackoverflow.com/questions/6629798/whats-wrong-with-this-rgb-to-xyz-color-space-conversion-algorithm
+				5) https://imagej.nih.gov/ij/plugins/download/Color_Space_Converter.java
+				6) https://stackoverflow.com/questions/35952564/convert-rgb-to-srgb
+				7) http://entropymine.com/imageworsener/srgbformula/
+				
+				Algoritmus byl z větší části převzat z JAVA appletu autora: Jindřich Hlavatý - Převod barevného obrazu na šedotónový – applet
+				
+				Převod RGB -> LAB ve zkratce:
+				První fáze - lineární převod RGB do XYZ barevného prostoru, pracujeme s násobením matic, viz Wiki.
+				Druhý krok - převod XYZ -> LAB nelineárně, s použitím vzorců*/
+				for (var i = 0, n = pix.length; i < n; i += 4) {
+				  /* převod do sRGB
+				  a = 0,055 = konst.
+				  dělíme 255 protože potřebujeme pro výpočet hodnoty barevných kanálů v rozsahu 0-1*/
+				  var_R = pix[i  ]/255;
+				  var_G = pix[i+1]/255;
+				  var_B = pix[i+2]/255;
+				  
+				  /*hodnota 0.04045 použita pro aproximaci/linearizaci? místo kde se protnou úsečky
+				  transformace CIE xyY/CIE XYZ do sRGB, zpětná transformace*/
+				  if (var_R > 0.04045) {
+					var_R = Math.pow(( (var_R + 0.055)/1.055 ), 2.4);
+				  }
+				  else {
+					var_R = var_R / 12.92;
+				  }
+				  if ( var_G > 0.04045 ) {
+					var_G = Math.pow(( (var_G + 0.055)/1.055 ), 2.4);
+				  }
+				  else {
+					var_G = var_G / 12.92;
+				  }
+				  if ( var_B > 0.04045 ){
+					var_B = Math.pow(( (var_B + 0.055)/1.055 ), 2.4);
+				  }
+				  else {
+					var_B = var_B / 12.92;
+				  }
+
+				  var_R = var_R * 100.0;
+				  var_G = var_G * 100.0;
+				  var_B = var_B * 100.0;
+				  
+				  /*výpočet jasové složky Y z transformační matice*/
+				  Y = (var_R * 0.2126) + (var_G * 0.7152) + (var_B * 0.0722);
+				  var_Y = Y / ref_Y;          
+					
+				  if ( var_Y > 0.008856 ) {
+					var_Y = Math.pow(var_Y, 1.0/3.0);
+				  }
+				  else {
+					var_Y = ( 7.787 * var_Y ) + ( 16.0 / 116.0 );
+				  }
+				
+				/*Převod XYZ na LAB - část kódu s matematickými vztahy rovněž převzata (s drobnými úpravami) z programu Jindřicha Hlavatého */
+				
+				  CL = ( 116.0 * var_Y ) - 16.0; //výpočet hodnoty světlosti
+				  Ca=0.0; //hodnota na ose zelená-červená
+				  Cb=0.0; //hodnota na ose modrá-žlutá
+				
+				  var_Y = ( CL + 16.0 ) / 116.0;
+				  var_X = Ca / 500.0 + var_Y;
+				  var_Z = var_Y - Cb / 200.0;
+
+				  if ( Math.pow(var_Y, 3.0) > 0.008856 ) {
+					var_Y = Math.pow(var_Y, 3.0);
+				  }
+				  else {
+					var_Y = ( var_Y - 16.0 / 116.0 ) / 7.787;
+				  }
+				  if ( Math.pow(var_X, 3.0) > 0.008856 ) {
+					var_X = Math.pow(var_X, 3.0);
+				  }
+				  else {
+					var_X = ( var_X - 16.0 / 116.0 ) / 7.787;
+				  }
+				  if ( Math.pow(var_Z, 3.0) > 0.008856 ) {
+					var_Z = Math.pow(var_Z, 3.0);
+				  }
+				  else {
+					var_Z = ( var_Z - 16.0 / 116.0 ) / 7.787;
+				  }
+
+				  X = ref_X * var_X;     //ref_X =  95.047     
+				  Y = ref_Y * var_Y;     //ref_Y = 100.000
+				  Z = ref_Z * var_Z;     //ref_Z = 108.883
+				  
+				  var_X = X / 100.0;      //X from 0 to  95.047      
+				  var_Y = Y / 100.0;        //Y from 0 to 100.000
+				  var_Z = Z / 100.0;        //Z from 0 to 108.883
+
+				  var_R = (var_X *  3.2406) + (var_Y * -1.5372) + (var_Z * -0.4986);
+				  var_G = (var_X * -0.9689) + (var_Y *  1.8758) + (var_Z *  0.0415);
+				  var_B = (var_X *  0.0557) + (var_Y * -0.2040) + (var_Z *  1.0570);
+
+				  if ( var_R > 0.0031308 ) {
+					var_R = 1.055 * ( Math.pow(var_R, 1 / 2.4) ) - 0.055;
+				  }
+				  else {
+					var_R = 12.92 * var_R;
+				  }
+				  if ( var_G > 0.0031308 ) {
+					var_G = 1.055 * ( Math.pow(var_G, 1 / 2.4) ) - 0.055;
+				  }
+				  else {
+					var_G = 12.92 * var_G;
+				  }
+				  if ( var_B > 0.0031308 ) {
+					var_B = 1.055 * ( Math.pow(var_B, 1 / 2.4) ) - 0.055;
+				  }
+				  else {
+					var_B = 12.92 * var_B;
+				  }
+
+				  pix[i  ] = var_R * 255;
+				  pix[i+1] = var_G * 255;
+				  pix[i+2] = var_B * 255;
+				}
+				break;
+			case "michani":
+				for (var i = 0, n = pix.length; i < n; i += 4) {
+				  redS = document.getElementById('sliderRed').value;
+				  greenS = document.getElementById('sliderGreen').value;
+				  blueS = document.getElementById('sliderBlue').value;
+				  
+				  rgb = (pix[i  ]/255.0) * (redS/100.0) + (pix[i+1]/255.0) * (greenS/100.0) + (pix[i+2]/255.0) * (blueS/100.0);
+				  
+				  pix[i  ] = Math.round(rgb * 255.0);
+				  pix[i+1] = pix[i  ];
+				  pix[i+2] = pix[i  ];
+				}
+				break;
+		}
+
+		canvasFltr.putImageData(imgd, x, y);
+	};
+}
+</script>
+  </head>
+  <body>
+  
+  <table style="width:100%">
+  <tr>
+    <td><img id="ImgORIG" name="ImgORIG" src="images/Lod.jpg" alt="Original image" width="600" height="400"></td>
+    <td><canvas id="CanvasFLTR" alt="Image with applied filter." width="600" height="400"></canvas></td> 
+  </tr>
+  <tr>
+    <td>Výběr obrázku:<br>
+		<select id="ImageList" name="ImageList" onchange="setOrigImg(this);applyFilter(this.value, document.getElementsByName('radioBtn')[0].checked? 'prumerovani' : (document.getElementsByName('radioBtn')[1].checked? 'prevod' : (document.getElementsByName('radioBtn')[2].checked? 'michani' : 'michani')));">
+			<option value="lod" selected>Loď</option>
+			<option value="motorky">Motorky</option>
+			<option value="paleta">Paleta</option>
+			<option value="papousci">Papoušci</option>
+			<option value="rgb">RGB</option>
+		</select>
+	</td>
+    <td>
+		<input type="radio" id="radioBtn1" name="radioBtn" value="prumerovani" onchange="disableOptions(true);setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, this.value);" checked> Průměrování R,G,B<br>
+		<input type="radio" id="radioBtn2" name="radioBtn" value="prevod" onchange="disableOptions(true);setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, this.value);"> Převod do Lab<br>
+		<input type="radio" id="radioBtn3" name="radioBtn" value="michani" onchange="disableOptions(false);blendingSum();setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, this.value);"> Míchání R,G,B<br>
+		<form id="blendingOpt">
+			Red:<br>
+			<input type="range" id="sliderRed" name="sliderRed" min="0" max="100" value="33" disabled oninput="this.form.sliderRedValue.value=this.value;blendingSum();setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, 'michani');" />
+			<input type="number" id="sliderRedValue" name="sliderRedValue" min="0" max="100" value="33" disabled oninput="this.form.sliderRed.value=this.value;blendingSum();setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, 'michani');" /><br>
+			Green:<br>
+			<input type="range" id="sliderGreen" name="sliderGreen" min="0" max="100" value="34" disabled oninput="this.form.sliderGreenValue.value=this.value;blendingSum();setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, 'michani');" />
+			<input type="number" id="sliderGreenValue" name="sliderGreenValue" min="0" max="100" value="34" disabled oninput="this.form.sliderGreen.value=this.value;blendingSum();setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, 'michani');" /><br>
+			Blue:<br>
+			<input type="range" id="sliderBlue" name="sliderBlue" min="0" max="100" value="33" disabled oninput="this.form.sliderBlueValue.value=this.value;blendingSum();setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, 'michani');" />
+			<input type="number" id="sliderBlueValue" name="sliderBlueValue" min="0" max="100" value="33" disabled oninput="this.form.sliderBlue.value=this.value;blendingSum();setOrigImg(document.getElementById('ImageList'));applyFilter(document.getElementById('ImageList').value, 'michani');" /><br>
+			Součet: <div id="blendingSum"></div>
+		</form>
+	</td>
+  </tr>
+</table>
+
+<script>
+//document.getElementById("ImageList").onchange = console.log(document.getElementById('ImageList').value);
+document.getElementById("ImgORIG").onload = applyFilter(document.getElementById('ImageList').value, document.getElementsByName('radioBtn')[0].checked? 'prumerovani' : (document.getElementsByName('radioBtn')[1].checked? 'prevod' : (document.getElementsByName('radioBtn')[2].checked? 'michani' : 'michani')));
+
+//document.getElementById("ImageList").onchange = applyFilter(document.getElementById('ImageList').value, document.getElementsByName('radioBtn')[0].checked? 'prumerovani' : (document.getElementsByName('radioBtn')[1].checked? 'prevod' : (document.getElementsByName('radioBtn')[2].checked? 'michani' : 'michani')));
+	</script>
+
+
+  </body>
+</html>      

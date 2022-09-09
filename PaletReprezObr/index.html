@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<!-- Applet sestavil: Filip Krolop -->
+<!-- Applet byl sestaven v rámci bakalářské práce na téma "Interaktivní webové aplikace pro podporu výuky zpracování obrazu" v roce 2019/2020. Prohlašuji, že jsem tento applet zpracoval samostatně, s využitím volně dostupných zdrojů a konzultací s vedoucím mé práce, inspiraci jsem však čerpal také ze studia zdrojového kódu/dekompilovaného kódu původního appletu napsaného v jazyce Java od autora Miroslava Riška. Z toho důvodu se mohou objevovat podobnosti v některých částech kódu, zejména těch částech, které se zaobírají implementací matematických vztahů. -->
+<!-- http://www.utko.feec.vutbr.cz/~rajmic/applets/IndexovaneBarvy.html -->
+<!-- https://www.vutbr.cz/studenti/zav-prace/detail/77455 -->
+<html>
+<head>
+	<meta charset="UTF-8">
+	<script>
+		function changeMatrixSize(type) {
+			switch (type) {
+				case "3x3":
+					document.getElementById('input5x5').style.display = "none";
+					document.getElementById('output5x5').style.display = "none";
+					document.getElementById('input7x7').style.display = "none";
+					document.getElementById('output7x7').style.display = "none";
+					document.getElementById('input3x3').style.display = "block";
+					document.getElementById('output3x3').style.display = "block";
+					break;
+				case "5x5":
+					document.getElementById('input3x3').style.display = "none";
+					document.getElementById('output3x3').style.display = "none";
+					document.getElementById('input7x7').style.display = "none";
+					document.getElementById('output7x7').style.display = "none";
+					document.getElementById('input5x5').style.display = "block";
+					document.getElementById('output5x5').style.display = "block";
+					break;
+				case "7x7":
+					document.getElementById('input3x3').style.display = "none";
+					document.getElementById('output3x3').style.display = "none";
+					document.getElementById('input5x5').style.display = "none";
+					document.getElementById('output5x5').style.display = "none";
+					document.getElementById('input7x7').style.display = "block";
+					document.getElementById('output7x7').style.display = "block";
+					break;
+				default:
+					break;
+			}
+		}
+		
+		function radioChangeColor(color,row) {
+			var x, i, a;
+			switch (row) {
+				case "row1":
+					x = document.getElementsByName('inMtx');
+					for (i = 0; i < x.length; i++) {
+						if (x[i].value == "1") {
+							a = x[i].getAttribute('id')
+							a = a.replace("i", "o");
+							document.getElementById(a).style.backgroundColor = color;
+						}
+					}
+					break;
+				case "row2":
+					x = document.getElementsByName('inMtx');
+					for (i = 0; i < x.length; i++) {
+						if (x[i].value == "2") {
+							a = x[i].getAttribute('id')
+							a = a.replace("i", "o");
+							document.getElementById(a).style.backgroundColor = color;
+						}
+					}
+					break;
+				case "row3":
+					x = document.getElementsByName('inMtx');
+					for (i = 0; i < x.length; i++) {
+						if (x[i].value == "3") {
+							a = x[i].getAttribute('id')
+							a = a.replace("i", "o");
+							document.getElementById(a).style.backgroundColor = color;
+						}
+					}
+					break;
+				case "row4":
+					x = document.getElementsByName('inMtx');
+					for (i = 0; i < x.length; i++) {
+						if (x[i].value == "4") {
+							a = x[i].getAttribute('id')
+							a = a.replace("i", "o");
+							document.getElementById(a).style.backgroundColor = color;
+						}
+					}
+					break;
+				case "row5":
+					x = document.getElementsByName('inMtx');
+					for (i = 0; i < x.length; i++) {
+						if (x[i].value == "5") {
+							a = x[i].getAttribute('id')
+							a = a.replace("i", "o");
+							document.getElementById(a).style.backgroundColor = color;
+						}
+					}
+					break;
+				case "row6":
+					x = document.getElementsByName('inMtx');
+					for (i = 0; i < x.length; i++) {
+						if (x[i].value == "6") {
+							a = x[i].getAttribute('id')
+							a = a.replace("i", "o");
+							document.getElementById(a).style.backgroundColor = color;
+						}
+					}
+					break;
+				default:
+					break;
+			}
+		}
+		
+		function changeIndexNumber(cId) {
+			var a, getVal, getRow, getRadio, getRadioId;
+			
+			a = cId;
+			a = a.replace("i", "o");
+			
+			getVal = document.getElementById(cId).value;
+			getRow = "row" + getVal;
+			getRadio = document.getElementsByName(getRow);
+
+			for (i = 0; i < getRadio.length; i++) {
+				if (getRadio[i].checked) {
+					getRadioId = getRadio[i].getAttribute('id');
+				}
+			}
+			
+			switch (getRadioId.charAt(0)) {
+				case "r":
+					document.getElementById(a).style.backgroundColor = "red";
+					break;
+				case "b":
+					document.getElementById(a).style.backgroundColor = "blue";
+					break;
+				case "y":
+					document.getElementById(a).style.backgroundColor = "yellow";
+					break;
+				case "g":
+					document.getElementById(a).style.backgroundColor = "green";
+					break;
+				case "k":
+					document.getElementById(a).style.backgroundColor = "black";
+					break;
+				case "c":
+					document.getElementById(a).style.backgroundColor = "cyan";
+					break;
+				default:
+					break;
+			}
+		}
+		
+		function randomFill() {
+		
+			var size, value, color;
+			document.getElementById('mtxRadio3x3').checked ? size = "3x3" : (document.getElementById('mtxRadio5x5').checked ? size = "5x5" : (document.getElementById('mtxRadio7x7').checked ? size = "7x7" : size = "undefined"));
+			
+			switch (size) {
+				case "3x3":
+					for (i = 1; i <= 3; i++) {
+						for (j = 1; j <= 3; j++) {
+							rndVal = Math.floor(Math.random() * 6) + 1;
+							document.getElementById(('3x3ic'.concat(i)).concat(j)).value = rndVal;
+							
+							document.getElementById('r'.concat(rndVal)).checked ? color = "red" : (document.getElementById('b'.concat(rndVal)).checked ? color = "blue" : (document.getElementById('y'.concat(rndVal)).checked ? color = "yellow" : (document.getElementById('g'.concat(rndVal)).checked ? color = "green" : (document.getElementById('k'.concat(rndVal)).checked ? color = "black" : (document.getElementById('c'.concat(rndVal)).checked ? color = "cyan" : color = "undefined")))));
+							
+							document.getElementById(('3x3oc'.concat(i)).concat(j)).style.backgroundColor = color;
+						}
+					}
+					break;
+				case "5x5":
+					for (i = 1; i <= 5; i++) {
+						for (j = 1; j <= 5; j++) {
+							rndVal = Math.floor(Math.random() * 6) + 1;
+							document.getElementById(('5x5ic'.concat(i)).concat(j)).value = rndVal;
+							
+							document.getElementById('r'.concat(rndVal)).checked ? color = "red" : (document.getElementById('b'.concat(rndVal)).checked ? color = "blue" : (document.getElementById('y'.concat(rndVal)).checked ? color = "yellow" : (document.getElementById('g'.concat(rndVal)).checked ? color = "green" : (document.getElementById('k'.concat(rndVal)).checked ? color = "black" : (document.getElementById('c'.concat(rndVal)).checked ? color = "cyan" : color = "undefined")))));
+							
+							document.getElementById(('5x5oc'.concat(i)).concat(j)).style.backgroundColor = color;
+						}
+					}
+					break;
+				case "7x7":
+					for (i = 1; i <= 7; i++) {
+						for (j = 1; j <= 7; j++) {
+							rndVal = Math.floor(Math.random() * 6) + 1;
+							document.getElementById(('7x7ic'.concat(i)).concat(j)).value = rndVal;
+							
+							document.getElementById('r'.concat(rndVal)).checked ? color = "red" : (document.getElementById('b'.concat(rndVal)).checked ? color = "blue" : (document.getElementById('y'.concat(rndVal)).checked ? color = "yellow" : (document.getElementById('g'.concat(rndVal)).checked ? color = "green" : (document.getElementById('k'.concat(rndVal)).checked ? color = "black" : (document.getElementById('c'.concat(rndVal)).checked ? color = "cyan" : color = "undefined")))));
+							
+							document.getElementById(('7x7oc'.concat(i)).concat(j)).style.backgroundColor = color;
+						}
+					}
+					break;
+				default:
+					break;
+			//Math.floor(Math.random() * 6) + 1
+			}
+		}
+		
+		function clearTable() {
+			var size, value, color;
+			document.getElementById('mtxRadio3x3').checked ? size = "3x3" : (document.getElementById('mtxRadio5x5').checked ? size = "5x5" : (document.getElementById('mtxRadio7x7').checked ? size = "7x7" : size = "undefined"));
+			
+			switch (size) {
+				case "3x3":
+					for (i = 1; i <= 3; i++) {
+						for (j = 1; j <= 3; j++) {
+							document.getElementById(('3x3ic'.concat(i)).concat(j)).value = "";						
+							document.getElementById(('3x3oc'.concat(i)).concat(j)).style.backgroundColor = "pink";
+						}
+					}
+					break;
+				case "5x5":
+					for (i = 1; i <= 5; i++) {
+						for (j = 1; j <= 5; j++) {
+							document.getElementById(('5x5ic'.concat(i)).concat(j)).value = "";
+							document.getElementById(('5x5oc'.concat(i)).concat(j)).style.backgroundColor = "pink";
+						}
+					}
+					break;
+				case "7x7":
+					for (i = 1; i <= 7; i++) {
+						for (j = 1; j <= 7; j++) {
+							rndVal = Math.floor(Math.random() * 6) + 1;
+							document.getElementById(('7x7ic'.concat(i)).concat(j)).value = "";						
+							document.getElementById(('7x7oc'.concat(i)).concat(j)).style.backgroundColor = "pink";
+						}
+					}
+					break;
+				default:
+					break;
+			//Math.floor(Math.random() * 6) + 1
+			}
+		}
+	</script>
+</head>
+<body>
+
+<table>
+  <tr>
+    <td>
+		<div id="matrixSize">
+			Velikost matic:<br>
+			<input type="radio" id="mtxRadio3x3" name="mtxRadio" value="3x3" onchange="changeMatrixSize('3x3')">3x3<br>
+			<input type="radio" id="mtxRadio5x5" name="mtxRadio" value="5x5" onchange="changeMatrixSize('5x5')">5x5<br>
+			<input type="radio" id="mtxRadio7x7" name="mtxRadio" value="7x7" onchange="changeMatrixSize('7x7')" checked>7x7
+		</div>
+		<div id="actionButtons">
+			<button type="button" onclick="">Vykreslit</button><br>
+			<button type="button" onclick="clearTable()">Vymazat</button><br>
+			<button type="button" onclick="randomFill()">Náhodné</button>
+		</div>
+	</td>
+    <td>
+		<div id="radioButtons">
+			<table>
+				<tr>
+					<th></th>
+					<th>Red</th>
+					<th>Blue</th>
+					<th>Yellow</th>
+					<th>Green</th>
+					<th>Black</th>
+					<th>Cyan</th>
+				</tr>
+				<tr>
+					<td>1</td>
+					<td><input type="radio" id="r1" name="row1" value="1" onchange="radioChangeColor('red','row1');" checked></td>
+					<td><input type="radio" id="b1" name="row1" value="1" onchange="radioChangeColor('blue','row1');"></td>
+					<td><input type="radio" id="y1" name="row1" value="1" onchange="radioChangeColor('yellow','row1');"></td>
+					<td><input type="radio" id="g1" name="row1" value="1" onchange="radioChangeColor('green','row1');"></td>
+					<td><input type="radio" id="k1" name="row1" value="1" onchange="radioChangeColor('black','row1');"></td>
+					<td><input type="radio" id="c1" name="row1" value="1" onchange="radioChangeColor('cyan','row1');"></td>
+				</tr>
+				<tr>
+					<td>2</td>
+					<td><input type="radio" id="r2" name="row2" value="1" onchange="radioChangeColor('red','row2');"></td>
+					<td><input type="radio" id="b2" name="row2" value="1" onchange="radioChangeColor('blue','row2');" checked></td>
+					<td><input type="radio" id="y2" name="row2" value="1" onchange="radioChangeColor('yellow','row2');"></td>
+					<td><input type="radio" id="g2" name="row2" value="1" onchange="radioChangeColor('green','row2');"></td>
+					<td><input type="radio" id="k2" name="row2" value="1" onchange="radioChangeColor('black','row2');"></td>
+					<td><input type="radio" id="c2" name="row2" value="1" onchange="radioChangeColor('cyan','row2');"></td>
+				</tr>
+				<tr>
+					<td>3</td>
+					<td><input type="radio" id="r3" name="row3" value="1" onchange="radioChangeColor('red','row3');"></td>
+					<td><input type="radio" id="b3" name="row3" value="1" onchange="radioChangeColor('blue','row3');"></td>
+					<td><input type="radio" id="y3" name="row3" value="1" onchange="radioChangeColor('yellow','row3');" checked></td>
+					<td><input type="radio" id="g3" name="row3" value="1" onchange="radioChangeColor('green','row3');"></td>
+					<td><input type="radio" id="k3" name="row3" value="1" onchange="radioChangeColor('black','row3');"></td>
+					<td><input type="radio" id="c3" name="row3" value="1" onchange="radioChangeColor('cyan','row3');"></td>
+				</tr>
+				<tr>
+					<td>4</td>
+					<td><input type="radio" id="r4" name="row4" value="1" onchange="radioChangeColor('red','row4');"></td>
+					<td><input type="radio" id="b4" name="row4" value="1" onchange="radioChangeColor('blue','row4');"></td>
+					<td><input type="radio" id="y4" name="row4" value="1" onchange="radioChangeColor('yellow','row4');"></td>
+					<td><input type="radio" id="g4" name="row4" value="1" onchange="radioChangeColor('green','row4');" checked></td>
+					<td><input type="radio" id="k4" name="row4" value="1" onchange="radioChangeColor('black','row4');"></td>
+					<td><input type="radio" id="c4" name="row4" value="1" onchange="radioChangeColor('cyan','row4');"></td>
+				</tr>
+				<tr>
+					<td>5</td>
+					<td><input type="radio" id="r5" name="row5" value="1" onchange="radioChangeColor('red','row5');"></td>
+					<td><input type="radio" id="b5" name="row5" value="1" onchange="radioChangeColor('blue','row5');"></td>
+					<td><input type="radio" id="y5" name="row5" value="1" onchange="radioChangeColor('yellow','row5');"></td>
+					<td><input type="radio" id="g5" name="row5" value="1" onchange="radioChangeColor('green','row5');"></td>
+					<td><input type="radio" id="k5" name="row5" value="1" onchange="radioChangeColor('black','row5');" checked></td>
+					<td><input type="radio" id="c5" name="row5" value="1" onchange="radioChangeColor('cyan','row5');"></td>
+				</tr>
+				<tr>
+					<td>6</td>
+					<td><input type="radio" id="r6" name="row6" value="1" onchange="radioChangeColor('red','row6');"></td>
+					<td><input type="radio" id="b6" name="row6" value="1" onchange="radioChangeColor('blue','row6');"></td>
+					<td><input type="radio" id="y6" name="row6" value="1" onchange="radioChangeColor('yellow','row6');"></td>
+					<td><input type="radio" id="g6" name="row6" value="1" onchange="radioChangeColor('green','row6');"></td>
+					<td><input type="radio" id="k6" name="row6" value="1" onchange="radioChangeColor('black','row6');"></td>
+					<td><input type="radio" id="c6" name="row6" value="1" onchange="radioChangeColor('cyan','row6');" checked></td>
+				</tr>
+			</table>
+		</div>
+	</td>
+  </tr>
+  <tr>
+    <td>
+		<div id="inputMatrix">
+			<div id="input3x3" style="display: none;">
+				<table>
+					<tr>
+						<td><input type="number" id="3x3ic11" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="3x3ic12" name="inMtx" style="width: 45px; height: 45px;" value="2" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="3x3ic13" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="3x3ic21" name="inMtx" style="width: 45px; height: 45px;" value="2" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="3x3ic22" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="3x3ic23" name="inMtx" style="width: 45px; height: 45px;" value="2" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="3x3ic31" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="3x3ic32" name="inMtx" style="width: 45px; height: 45px;" value="2" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="3x3ic33" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+				</table>
+			</div>
+			<div id="input5x5" style="display: none;">
+				<table>
+					<tr>
+						<td><input type="number" id="5x5ic11" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic12" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic13" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic14" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic15" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="5x5ic21" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic22" name="inMtx" style="width: 45px; height: 45px;" value="5" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic23" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic24" name="inMtx" style="width: 45px; height: 45px;" value="5" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic25" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="5x5ic31" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic32" name="inMtx" style="width: 45px; height: 45px;" value="5" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic33" name="inMtx" style="width: 45px; height: 45px;" value="5" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic34" name="inMtx" style="width: 45px; height: 45px;" value="5" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic35" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="5x5ic41" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic42" name="inMtx" style="width: 45px; height: 45px;" value="5" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic43" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic44" name="inMtx" style="width: 45px; height: 45px;" value="5" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic45" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="5x5ic51" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic52" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic53" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic54" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="5x5ic55" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+				</table>
+			</div>
+			<div id="input7x7" style="display: block;">
+				<table>
+					<tr>
+						<td><input type="number" id="7x7ic11" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic12" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic13" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic14" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic15" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic16" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic17" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="7x7ic21" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic22" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic23" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic24" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic25" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic26" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic27" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="7x7ic31" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic32" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic33" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic34" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic35" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic36" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic37" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="7x7ic41" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic42" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic43" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic44" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic45" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic46" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic47" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="7x7ic51" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic52" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic53" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic54" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic55" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic56" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic57" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="7x7ic61" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic62" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic63" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic64" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic65" name="inMtx" style="width: 45px; height: 45px;" value="1" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic66" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic67" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+					<tr>
+						<td><input type="number" id="7x7ic71" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic72" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic73" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic74" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic75" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic76" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+						<td><input type="number" id="7x7ic77" name="inMtx" style="width: 45px; height: 45px;" value="3" min="1" max="6" onchange="changeIndexNumber(this.id)"></td>
+					</tr>
+				</table>
+			</div>
+		</div>
+	</td>
+    <td>
+		<div id="outputMatrix">
+			<div id="output3x3" style="display: none;">
+				<table>
+					<tr>
+						<td id="3x3oc11" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="3x3oc12" name="outMtx" width="50px" height="50px" bgcolor="blue"></td>
+						<td id="3x3oc13" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="3x3oc21" name="outMtx" width="50px" height="50px" bgcolor="blue"></td>
+						<td id="3x3oc22" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="3x3oc23" name="outMtx" width="50px" height="50px" bgcolor="blue"></td>
+					</tr>
+					<tr>
+						<td id="3x3oc31" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="3x3oc32" name="outMtx" width="50px" height="50px" bgcolor="blue"></td>
+						<td id="3x3oc33" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+				</table>
+			</div>
+			<div id="output5x5" style="display: none;">
+				<table>
+					<tr>
+						<td id="5x5oc11" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc12" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc13" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc14" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc15" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="5x5oc21" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc22" name="outMtx" width="50px" height="50px" bgcolor="black"></td>
+						<td id="5x5oc23" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc24" name="outMtx" width="50px" height="50px" bgcolor="black"></td>
+						<td id="5x5oc25" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="5x5oc31" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc32" name="outMtx" width="50px" height="50px" bgcolor="black"></td>
+						<td id="5x5oc33" name="outMtx" width="50px" height="50px" bgcolor="black"></td>
+						<td id="5x5oc34" name="outMtx" width="50px" height="50px" bgcolor="black"></td>
+						<td id="5x5oc35" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="5x5oc41" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc42" name="outMtx" width="50px" height="50px" bgcolor="black"></td>
+						<td id="5x5oc43" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc44" name="outMtx" width="50px" height="50px" bgcolor="black"></td>
+						<td id="5x5oc45" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="5x5oc51" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc52" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc53" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc54" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="5x5oc55" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+				</table>
+			</div>
+			<div id="output7x7" style="display: block;">
+				<table>
+					<tr>
+						<td id="7x7oc11" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc12" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc13" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc14" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc15" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc16" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc17" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="7x7oc21" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc22" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc23" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc24" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc25" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc26" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc27" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="7x7oc31" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc32" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc33" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc34" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc35" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc36" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc37" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="7x7oc41" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc42" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc43" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc44" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc45" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc46" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc47" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="7x7oc51" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc52" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc53" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc54" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc55" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc56" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc57" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="7x7oc61" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc62" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc63" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc64" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc65" name="outMtx" width="50px" height="50px" bgcolor="red"></td>
+						<td id="7x7oc66" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc67" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+					<tr>
+						<td id="7x7oc71" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc72" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc73" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc74" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc75" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc76" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+						<td id="7x7oc77" name="outMtx" width="50px" height="50px" bgcolor="yellow"></td>
+					</tr>
+				</table>
+			</div>
+		</div>
+	</td>
+  </tr>
+</table>
+
+</body>
+</html>

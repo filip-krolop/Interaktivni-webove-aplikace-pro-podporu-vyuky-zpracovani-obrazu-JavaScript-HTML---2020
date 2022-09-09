@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<!-- Applet sestavil: Filip Krolop -->
+<!-- Applet byl sestaven v rámci bakalářské práce na téma "Interaktivní webové aplikace pro podporu výuky zpracování obrazu" v roce 2019/2020. Prohlašuji, že jsem tento applet zpracoval samostatně, s využitím volně dostupných zdrojů a konzultací s vedoucím mé práce, inspiraci jsem však čerpal také ze studia zdrojového kódu/dekompilovaného kódu původního appletu napsaného v jazyce Java od autora Jindřicha Hlavatého. Z toho důvodu se mohou objevovat podobnosti v některých částech kódu, zejména těch částech, které se zaobírají implementací matematických vztahů. -->
+<!-- http://www.utko.feec.vutbr.cz/~rajmic/applets/MichaniBarev.html -->
+<!-- https://www.vutbr.cz/studenti/zav-prace/detail/66567 -->
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+#parent, #parent th, #parent td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+
+#child, #child th, #child td {
+    border: none;
+}
+
+input[type=range][orient=vertical]
+{
+    writing-mode: bt-lr; /* IE */
+    -webkit-appearance: slider-vertical; /* WebKit */
+    width: 75px;
+    height: 175px;
+}
+
+#outer-div
+{
+  padding: 185px;
+  background-color: black;
+}
+#inner-div
+{
+  margin: 0 auto;
+  width: 100px;
+  height: 100px;
+  background-color: white;
+}
+
+</style>
+<script>
+	var lastMovedSlider;
+	var detectedOverflow = false; var recalculate = false;
+	var LValBak = 0, aValBak = 0, bValBak = 0, YValBak = 0, CbValBak = 0, CrValBak = 0;
+	
+	/* Inspirace z: https://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb */
+	function rgb2hex(red, green, blue) {
+		var rgb = blue | (green << 8) | (red << 16);
+		return '#' + (0x1000000 + rgb).toString(16).slice(1)
+	}
+
+	function autoConv(colorModel,val1,val2,val3) {
+		switch (colorModel) {
+			case "rgb":
+				/*to CMY (value 1,2,3 = r,g,b)*/
+				var c_cmy = 255 - val1;
+				var m_cmy = 255 - val2;
+				var y_cmy = 255 - val3;
+				
+				document.getElementById('sliderc').value = c_cmy;
+				document.getElementById('sliderm').value = m_cmy;
+				document.getElementById('slidery').value = y_cmy;
+				
+				document.getElementById('cmycval').value = c_cmy;
+				document.getElementById('cmycperc').value = Math.round((c_cmy/255)*100);
+				document.getElementById('cmymval').value = m_cmy;
+				document.getElementById('cmymperc').value = Math.round((m_cmy/255)*100);
+				document.getElementById('cmyyval').value = y_cmy;
+				document.getElementById('cmyyperc').value = Math.round((y_cmy/255)*100);
+				
+				/*HSB - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů webového kalkulátoru na rapid-tables.com (https://www.rapidtables.com/convert/color/rgb-to-hsv.html) */
+				var r = val1;
+				var g = val2;
+				var b = val3;
+				r/=255;
+				g/=255;
+				b/=255;
+				var M = Math.max(r,g,b);
+				var m = Math.min(r,g,b);
+				var C = M-m;
+				var h;
+				if( C==0 ) h=0;
+				else if( M==r ) h=((g-b)/C)%6;
+				else if( M==g ) h=(b-r)/C+2;
+				else h=(r-g)/C+4;
+				h*=60;
+				if( h<0 ) h+=360;
+				var v = M;
+				var s;
+				if( v==0 )
+					s = 0;
+				else
+					s = C/v;
+				s*=100;
+				v*=100;
+
+				document.getElementById('sliderh').value = h;
+				document.getElementById('sliders').value = s;
+				document.getElementById('sliderbr').value = v;
+				
+				document.getElementById('hsbhval').value = Math.round(h);
+				document.getElementById('hsbsval').value = Math.round(s);
+				document.getElementById('hsbbval').value = Math.round(v);
+				
+				
+				/*Lab - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů appletu od Jindřicha Hlavatého. Prakticky totožná řešení (i s uvedenými komentáři) lze snadno dohledat na internetu, zejména z diskuzí na programátorské poradně Stack Overflow. */
+				var r_rgb = val1;
+				var g_rgb = val2;
+				var b_rgb = val3;
+				
+				var var_R,var_G,var_B;
+				var R,G,B,X,Y,Z,var_llab,var_alab,var_blab;
+				var var_X,var_Y,var_Z;
+				var ref_X=95.047,ref_Y=100.0,ref_Z=108.883;
+		
+				var_R = (r_rgb/255.0);       //R from 0 to 255
+				var_G = (g_rgb/255.0);       //G from 0 to 255
+				var_B = (b_rgb/255.0);        //B from 0 to 255
+				
+				if ( var_R > 0.04045 ) {
+					var_R = Math.pow(( ( var_R + 0.055 ) / 1.055 ),2.4);
+				}
+				else {
+					var_R = var_R / 12.92;
+				}
+				if ( var_G > 0.04045 ) {
+					var_G = Math.pow(( ( var_G + 0.055 ) / 1.055 ), 2.4);
+				}
+				else {
+					var_G = var_G / 12.92;
+				}
+				if ( var_B > 0.04045 ) {
+					var_B = Math.pow(( ( var_B + 0.055 ) / 1.055 ), 2.4);
+				}
+				else {
+					var_B = var_B / 12.92;
+				}
+
+				var_R = var_R * 100.0;
+				var_G = var_G * 100.0;
+				var_B = var_B * 100.0;
+
+				X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+				Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+				Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+				
+				var_X = X / ref_X;          //ref_X =  95.047
+				var_Y = Y / ref_Y;          //ref_Y = 100.000
+				var_Z = Z / ref_Z;          //ref_Z = 108.883
+
+				if ( var_X > 0.008856 ) {
+					var_X = Math.pow(var_X, 1.0/3.0);
+				}
+				else {
+					var_X = ( 7.787 * var_X ) + ( 16.0 / 116.0 );
+				}
+				if ( var_Y > 0.008856 ) {
+					var_Y = Math.pow(var_Y, 1.0/3.0);
+				}
+				else {
+					var_Y = ( 7.787 * var_Y ) + ( 16.0 / 116.0 );
+				}
+				if ( var_Z > 0.008856 ) {
+					var_Z = Math.pow(var_Z, 1.0/3.0);
+				}
+				else {
+					var_Z = ( 7.787 * var_Z ) + ( 16.0 / 116.0 );
+				}
+
+				var_llab = ( 116.0 * var_Y ) - 16.0;
+				var_alab = 500.0 * ( var_X - var_Y );
+				var_blab = 200.0 * ( var_Y - var_Z );
+				l_lab=parseInt(var_llab);
+				a_lab=parseInt(var_alab);
+				b_lab=parseInt(var_blab);
+				
+				document.getElementById('sliderl').value = l_lab;
+				document.getElementById('slidera').value = a_lab;
+				document.getElementById('sliderbl').value = b_lab;
+				
+				document.getElementById('lablval').value = Math.round(l_lab);
+				document.getElementById('labaval').value = Math.round(a_lab);
+				document.getElementById('labbval').value = Math.round(b_lab);
+				
+				
+				/* YCbCr - část s matematickými vztahy opět převzata ze zdroj. kódů appletu Jindřicha Hlavatého. */
+				var red = parseFloat(val1);
+				var green = parseFloat(val2);
+				var blue = parseFloat(val3);
+				
+				var y_ycbcr = parseInt( ((red*0.299) + (green*0.587) + (blue*0.114)).toFixed(3) );
+				var cb_ycbcr = parseInt( ((-0.168935*red) - (0.331665*green) + (0.50059*blue)).toFixed(6) );
+				var cr_ycbcr = parseInt( ((0.499813*red) - (0.418531*green) - (0.081282*blue)).toFixed(6) );
+				
+				document.getElementById('slideryl').value = y_ycbcr;
+				document.getElementById('slidercb').value = cb_ycbcr;
+				document.getElementById('slidercr').value = cr_ycbcr;
+				
+				document.getElementById('ycbcryval').value = Math.round(y_ycbcr);
+				document.getElementById('ycbcrcbval').value = Math.round(cb_ycbcr);
+				document.getElementById('ycbcrcrval').value = Math.round(cr_ycbcr);
+				break;
+			case "cmy":
+				/*to RGB (value 1,2,3 = c,m,y)*/
+				var r_rgb = 255 - val1;
+				var g_rgb = 255 - val2;
+				var b_rgb = 255 - val3;
+				
+				document.getElementById('sliderr').value = r_rgb;
+				document.getElementById('sliderg').value = g_rgb;
+				document.getElementById('sliderb').value = b_rgb;
+				
+				document.getElementById('rgbrval').value = r_rgb;
+				document.getElementById('rgbgval').value = g_rgb;
+				document.getElementById('rgbbval').value = b_rgb;
+				
+				/*HSB - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů webového kalkulátoru na rapid-tables.com (https://www.rapidtables.com/convert/color/rgb-to-hsv.html) */
+				var r = r_rgb;
+				var g = g_rgb;
+				var b = b_rgb;
+				r/=255;
+				g/=255;
+				b/=255;
+				var M = Math.max(r,g,b);
+				var m = Math.min(r,g,b);
+				var C = M-m;
+				var h;
+				if( C==0 ) h=0;
+				else if( M==r ) h=((g-b)/C)%6;
+				else if( M==g ) h=(b-r)/C+2;
+				else h=(r-g)/C+4;
+				h*=60;
+				if( h<0 ) h+=360;
+				var v = M;
+				var s;
+				if( v==0 )
+					s = 0;
+				else
+					s = C/v;
+				s*=100;
+				v*=100;
+
+				document.getElementById('sliderh').value = h;
+				document.getElementById('sliders').value = s;
+				document.getElementById('sliderbr').value = v;
+				
+				document.getElementById('hsbhval').value = Math.round(h);
+				document.getElementById('hsbsval').value = Math.round(s);
+				document.getElementById('hsbbval').value = Math.round(v);
+				
+				/*Lab - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů appletu od Jindřicha Hlavatého. Prakticky totožná řešení (i s uvedenými komentáři) lze snadno dohledat na internetu, zejména z diskuzí na programátorské poradně Stack Overflow. */
+				var r_rgb = 255 - val1;
+				var g_rgb = 255 - val2;
+				var b_rgb = 255 - val3;
+				
+				var var_R,var_G,var_B;
+				var R,G,B,X,Y,Z,var_llab,var_alab,var_blab;
+				var var_X,var_Y,var_Z;
+				var ref_X=95.047,ref_Y=100.0,ref_Z=108.883;
+		
+				var_R = (r_rgb/255.0);       //R from 0 to 255
+				var_G = (g_rgb/255.0);       //G from 0 to 255
+				var_B = (b_rgb/255.0);        //B from 0 to 255
+				
+				if ( var_R > 0.04045 ) {
+					var_R = Math.pow(( ( var_R + 0.055 ) / 1.055 ),2.4);
+				}
+				else {
+					var_R = var_R / 12.92;
+				}
+				if ( var_G > 0.04045 ) {
+					var_G = Math.pow(( ( var_G + 0.055 ) / 1.055 ), 2.4);
+				}
+				else {
+					var_G = var_G / 12.92;
+				}
+				if ( var_B > 0.04045 ) {
+					var_B = Math.pow(( ( var_B + 0.055 ) / 1.055 ), 2.4);
+				}
+				else {
+					var_B = var_B / 12.92;
+				}
+
+				var_R = var_R * 100.0;
+				var_G = var_G * 100.0;
+				var_B = var_B * 100.0;
+
+				X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+				Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+				Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+				
+				var_X = X / ref_X;          //ref_X =  95.047
+				var_Y = Y / ref_Y;          //ref_Y = 100.000
+				var_Z = Z / ref_Z;          //ref_Z = 108.883
+
+				if ( var_X > 0.008856 ) {
+					var_X = Math.pow(var_X, 1.0/3.0);
+				}
+				else {
+					var_X = ( 7.787 * var_X ) + ( 16.0 / 116.0 );
+				}
+				if ( var_Y > 0.008856 ) {
+					var_Y = Math.pow(var_Y, 1.0/3.0);
+				}
+				else {
+					var_Y = ( 7.787 * var_Y ) + ( 16.0 / 116.0 );
+				}
+				if ( var_Z > 0.008856 ) {
+					var_Z = Math.pow(var_Z, 1.0/3.0);
+				}
+				else {
+					var_Z = ( 7.787 * var_Z ) + ( 16.0 / 116.0 );
+				}
+
+				var_llab = ( 116.0 * var_Y ) - 16.0;
+				var_alab = 500.0 * ( var_X - var_Y );
+				var_blab = 200.0 * ( var_Y - var_Z );
+				l_lab=parseInt(var_llab);
+				a_lab=parseInt(var_alab);
+				b_lab=parseInt(var_blab);
+				
+				document.getElementById('sliderl').value = l_lab;
+				document.getElementById('slidera').value = a_lab;
+				document.getElementById('sliderbl').value = b_lab;
+				
+				document.getElementById('lablval').value = Math.round(l_lab);
+				document.getElementById('labaval').value = Math.round(a_lab);
+				document.getElementById('labbval').value = Math.round(b_lab);
+				
+				
+				/*YCbCr - část s matematickými vztahy opět převzata ze zdroj. kódů appletu Jindřicha Hlavatého.*/
+				var red = parseFloat(255 - val1);
+				var green = parseFloat(255 - val2);
+				var blue = parseFloat(255 - val3);
+				
+				var y_ycbcr = parseInt( ((red*0.299) + (green*0.587) + (blue*0.114)).toFixed(3) );
+				var cb_ycbcr = parseInt( ((-0.168935*red) - (0.331665*green) + (0.50059*blue)).toFixed(6) );
+				var cr_ycbcr = parseInt( ((0.499813*red) - (0.418531*green) - (0.081282*blue)).toFixed(6) );
+				
+				document.getElementById('slideryl').value = y_ycbcr;
+				document.getElementById('slidercb').value = cb_ycbcr;
+				document.getElementById('slidercr').value = cr_ycbcr;
+				
+				document.getElementById('ycbcryval').value = Math.round(y_ycbcr);
+				document.getElementById('ycbcrcbval').value = Math.round(cb_ycbcr);
+				document.getElementById('ycbcrcrval').value = Math.round(cr_ycbcr);
+				break;
+			case "hsb":
+				/*RGB*/
+				var r_rgb = val1;
+				var g_rgb = val2;
+				var b_rgb = val3;
+				
+				document.getElementById('sliderr').value = r_rgb;
+				document.getElementById('sliderg').value = g_rgb;
+				document.getElementById('sliderb').value = b_rgb;
+				
+				document.getElementById('rgbrval').value = r_rgb;
+				document.getElementById('rgbgval').value = g_rgb;
+				document.getElementById('rgbbval').value = b_rgb;
+				/*to CMY (value 1,2,3 = r,g,b)*/
+				var c_cmy = 255 - val1;
+				var m_cmy = 255 - val2;
+				var y_cmy = 255 - val3;
+				
+				document.getElementById('sliderc').value = c_cmy;
+				document.getElementById('sliderm').value = m_cmy;
+				document.getElementById('slidery').value = y_cmy;
+				
+				document.getElementById('cmycval').value = c_cmy;
+				document.getElementById('cmycperc').value = Math.round((c_cmy/255)*100);
+				document.getElementById('cmymval').value = m_cmy;
+				document.getElementById('cmymperc').value = Math.round((m_cmy/255)*100);
+				document.getElementById('cmyyval').value = y_cmy;
+				document.getElementById('cmyyperc').value = Math.round((y_cmy/255)*100);
+				
+				
+				/*Lab - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů appletu od Jindřicha Hlavatého. Prakticky totožná řešení (i s uvedenými komentáři) lze snadno dohledat na internetu, zejména z diskuzí na programátorské poradně Stack Overflow. */
+				var r_rgb = val1;
+				var g_rgb = val2;
+				var b_rgb = val3;
+				
+				var var_R,var_G,var_B;
+				var R,G,B,X,Y,Z,var_llab,var_alab,var_blab;
+				var var_X,var_Y,var_Z;
+				var ref_X=95.047,ref_Y=100.0,ref_Z=108.883;
+		
+				var_R = (r_rgb/255.0);       //R from 0 to 255
+				var_G = (g_rgb/255.0);       //G from 0 to 255
+				var_B = (b_rgb/255.0);        //B from 0 to 255
+				
+				if ( var_R > 0.04045 ) {
+					var_R = Math.pow(( ( var_R + 0.055 ) / 1.055 ),2.4);
+				}
+				else {
+					var_R = var_R / 12.92;
+				}
+				if ( var_G > 0.04045 ) {
+					var_G = Math.pow(( ( var_G + 0.055 ) / 1.055 ), 2.4);
+				}
+				else {
+					var_G = var_G / 12.92;
+				}
+				if ( var_B > 0.04045 ) {
+					var_B = Math.pow(( ( var_B + 0.055 ) / 1.055 ), 2.4);
+				}
+				else {
+					var_B = var_B / 12.92;
+				}
+
+				var_R = var_R * 100.0;
+				var_G = var_G * 100.0;
+				var_B = var_B * 100.0;
+
+				X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+				Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+				Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+				
+				var_X = X / ref_X;          //ref_X =  95.047
+				var_Y = Y / ref_Y;          //ref_Y = 100.000
+				var_Z = Z / ref_Z;          //ref_Z = 108.883
+
+				if ( var_X > 0.008856 ) {
+					var_X = Math.pow(var_X, 1.0/3.0);
+				}
+				else {
+					var_X = ( 7.787 * var_X ) + ( 16.0 / 116.0 );
+				}
+				if ( var_Y > 0.008856 ) {
+					var_Y = Math.pow(var_Y, 1.0/3.0);
+				}
+				else {
+					var_Y = ( 7.787 * var_Y ) + ( 16.0 / 116.0 );
+				}
+				if ( var_Z > 0.008856 ) {
+					var_Z = Math.pow(var_Z, 1.0/3.0);
+				}
+				else {
+					var_Z = ( 7.787 * var_Z ) + ( 16.0 / 116.0 );
+				}
+
+				var_llab = ( 116.0 * var_Y ) - 16.0;
+				var_alab = 500.0 * ( var_X - var_Y );
+				var_blab = 200.0 * ( var_Y - var_Z );
+				l_lab=parseInt(var_llab);
+				a_lab=parseInt(var_alab);
+				b_lab=parseInt(var_blab);
+				
+				document.getElementById('sliderl').value = l_lab;
+				document.getElementById('slidera').value = a_lab;
+				document.getElementById('sliderbl').value = b_lab;
+				
+				document.getElementById('lablval').value = Math.round(l_lab);
+				document.getElementById('labaval').value = Math.round(a_lab);
+				document.getElementById('labbval').value = Math.round(b_lab);
+				
+				
+				/*YCbCr - část s matematickými vztahy opět převzata ze zdroj. kódů appletu Jindřicha Hlavatého.*/
+				var red = parseFloat(val1);
+				var green = parseFloat(val2);
+				var blue = parseFloat(val3);
+				
+				var y_ycbcr = parseInt( ((red*0.299) + (green*0.587) + (blue*0.114)).toFixed(3) );
+				var cb_ycbcr = parseInt( ((-0.168935*red) - (0.331665*green) + (0.50059*blue)).toFixed(6) );
+				var cr_ycbcr = parseInt( ((0.499813*red) - (0.418531*green) - (0.081282*blue)).toFixed(6) );
+				
+				document.getElementById('slideryl').value = y_ycbcr;
+				document.getElementById('slidercb').value = cb_ycbcr;
+				document.getElementById('slidercr').value = cr_ycbcr;
+				
+				document.getElementById('ycbcryval').value = Math.round(y_ycbcr);
+				document.getElementById('ycbcrcbval').value = Math.round(cb_ycbcr);
+				document.getElementById('ycbcrcrval').value = Math.round(cr_ycbcr);
+				break;
+			case "lab":
+				/*RGB*/
+				var r_rgb = val1;
+				var g_rgb = val2;
+				var b_rgb = val3;
+				
+				document.getElementById('sliderr').value = r_rgb;
+				document.getElementById('sliderg').value = g_rgb;
+				document.getElementById('sliderb').value = b_rgb;
+				
+				document.getElementById('rgbrval').value = r_rgb;
+				document.getElementById('rgbgval').value = g_rgb;
+				document.getElementById('rgbbval').value = b_rgb;
+				/*CMY*/
+				var c_cmy = 255 - val1;
+				var m_cmy = 255 - val2;
+				var y_cmy = 255 - val3;
+				
+				document.getElementById('sliderc').value = c_cmy;
+				document.getElementById('sliderm').value = m_cmy;
+				document.getElementById('slidery').value = y_cmy;
+				
+				document.getElementById('cmycval').value = c_cmy;
+				document.getElementById('cmycperc').value = Math.round((c_cmy/255)*100);
+				document.getElementById('cmymval').value = m_cmy;
+				document.getElementById('cmymperc').value = Math.round((m_cmy/255)*100);
+				document.getElementById('cmyyval').value = y_cmy;
+				document.getElementById('cmyyperc').value = Math.round((y_cmy/255)*100);
+				
+				/*HSB - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů webového kalkulátoru na rapid-tables.com (https://www.rapidtables.com/convert/color/rgb-to-hsv.html) */
+				var r = val1;
+				var g = val2;
+				var b = val3;
+				r/=255;
+				g/=255;
+				b/=255;
+				var M = Math.max(r,g,b);
+				var m = Math.min(r,g,b);
+				var C = M-m;
+				var h;
+				if( C==0 ) h=0;
+				else if( M==r ) h=((g-b)/C)%6;
+				else if( M==g ) h=(b-r)/C+2;
+				else h=(r-g)/C+4;
+				h*=60;
+				if( h<0 ) h+=360;
+				var v = M;
+				var s;
+				if( v==0 )
+					s = 0;
+				else
+					s = C/v;
+				s*=100;
+				v*=100;
+
+				document.getElementById('sliderh').value = h;
+				document.getElementById('sliders').value = s;
+				document.getElementById('sliderbr').value = v;
+				
+				document.getElementById('hsbhval').value = Math.round(h);
+				document.getElementById('hsbsval').value = Math.round(s);
+				document.getElementById('hsbbval').value = Math.round(v);
+				
+				/*YCbCr - část s matematickými vztahy opět převzata ze zdroj. kódů appletu Jindřicha Hlavatého.*/
+				var red = parseFloat(val1);
+				var green = parseFloat(val2);
+				var blue = parseFloat(val3);
+				
+				var y_ycbcr = parseInt( ((red*0.299) + (green*0.587) + (blue*0.114)).toFixed(3) );
+				var cb_ycbcr = parseInt( ((-0.168935*red) - (0.331665*green) + (0.50059*blue)).toFixed(6) );
+				var cr_ycbcr = parseInt( ((0.499813*red) - (0.418531*green) - (0.081282*blue)).toFixed(6) );
+				
+				document.getElementById('slideryl').value = y_ycbcr;
+				document.getElementById('slidercb').value = cb_ycbcr;
+				document.getElementById('slidercr').value = cr_ycbcr;
+				
+				document.getElementById('ycbcryval').value = Math.round(y_ycbcr);
+				document.getElementById('ycbcrcbval').value = Math.round(cb_ycbcr);
+				document.getElementById('ycbcrcrval').value = Math.round(cr_ycbcr);
+				break;
+
+			case "ycbcr":
+				/*RGB*/
+				var r_rgb = val1;
+				var g_rgb = val2;
+				var b_rgb = val3;
+				
+				document.getElementById('sliderr').value = r_rgb;
+				document.getElementById('sliderg').value = g_rgb;
+				document.getElementById('sliderb').value = b_rgb;
+				
+				document.getElementById('rgbrval').value = r_rgb;
+				document.getElementById('rgbgval').value = g_rgb;
+				document.getElementById('rgbbval').value = b_rgb;
+				
+				/*CMY*/
+				var c_cmy = 255 - val1;
+				var m_cmy = 255 - val2;
+				var y_cmy = 255 - val3;
+				
+				document.getElementById('sliderc').value = c_cmy;
+				document.getElementById('sliderm').value = m_cmy;
+				document.getElementById('slidery').value = y_cmy;
+				
+				document.getElementById('cmycval').value = c_cmy;
+				document.getElementById('cmycperc').value = Math.round((c_cmy/255)*100);
+				document.getElementById('cmymval').value = m_cmy;
+				document.getElementById('cmymperc').value = Math.round((m_cmy/255)*100);
+				document.getElementById('cmyyval').value = y_cmy;
+				document.getElementById('cmyyperc').value = Math.round((y_cmy/255)*100);
+				
+				/*HSB - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů webového kalkulátoru na rapid-tables.com (https://www.rapidtables.com/convert/color/rgb-to-hsv.html) */
+				var r = val1;
+				var g = val2;
+				var b = val3;
+				r/=255;
+				g/=255;
+				b/=255;
+				var M = Math.max(r,g,b);
+				var m = Math.min(r,g,b);
+				var C = M-m;
+				var h;
+				if( C==0 ) h=0;
+				else if( M==r ) h=((g-b)/C)%6;
+				else if( M==g ) h=(b-r)/C+2;
+				else h=(r-g)/C+4;
+				h*=60;
+				if( h<0 ) h+=360;
+				var v = M;
+				var s;
+				if( v==0 )
+					s = 0;
+				else
+					s = C/v;
+				s*=100;
+				v*=100;
+
+				document.getElementById('sliderh').value = h;
+				document.getElementById('sliders').value = s;
+				document.getElementById('sliderbr').value = v;
+				
+				document.getElementById('hsbhval').value = Math.round(h);
+				document.getElementById('hsbsval').value = Math.round(s);
+				document.getElementById('hsbbval').value = Math.round(v);
+				
+				/*Lab - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů appletu od Jindřicha Hlavatého. Prakticky totožná řešení (i s uvedenými komentáři) lze snadno dohledat na internetu, zejména z diskuzí na programátorské poradně Stack Overflow. */
+				var r_rgb = val1;
+				var g_rgb = val2;
+				var b_rgb = val3;
+				
+				var var_R,var_G,var_B;
+				var R,G,B,X,Y,Z,var_llab,var_alab,var_blab;
+				var var_X,var_Y,var_Z;
+				var ref_X=95.047,ref_Y=100.0,ref_Z=108.883;
+		
+				var_R = (r_rgb/255.0);       //R from 0 to 255
+				var_G = (g_rgb/255.0);       //G from 0 to 255
+				var_B = (b_rgb/255.0);        //B from 0 to 255
+				
+				if ( var_R > 0.04045 ) {
+					var_R = Math.pow(( ( var_R + 0.055 ) / 1.055 ),2.4);
+				}
+				else {
+					var_R = var_R / 12.92;
+				}
+				if ( var_G > 0.04045 ) {
+					var_G = Math.pow(( ( var_G + 0.055 ) / 1.055 ), 2.4);
+				}
+				else {
+					var_G = var_G / 12.92;
+				}
+				if ( var_B > 0.04045 ) {
+					var_B = Math.pow(( ( var_B + 0.055 ) / 1.055 ), 2.4);
+				}
+				else {
+					var_B = var_B / 12.92;
+				}
+
+				var_R = var_R * 100.0;
+				var_G = var_G * 100.0;
+				var_B = var_B * 100.0;
+
+				X = var_R * 0.4124 + var_G * 0.3576 + var_B * 0.1805;
+				Y = var_R * 0.2126 + var_G * 0.7152 + var_B * 0.0722;
+				Z = var_R * 0.0193 + var_G * 0.1192 + var_B * 0.9505;
+				
+				var_X = X / ref_X;          //ref_X =  95.047
+				var_Y = Y / ref_Y;          //ref_Y = 100.000
+				var_Z = Z / ref_Z;          //ref_Z = 108.883
+
+				if ( var_X > 0.008856 ) {
+					var_X = Math.pow(var_X, 1.0/3.0);
+				}
+				else {
+					var_X = ( 7.787 * var_X ) + ( 16.0 / 116.0 );
+				}
+				if ( var_Y > 0.008856 ) {
+					var_Y = Math.pow(var_Y, 1.0/3.0);
+				}
+				else {
+					var_Y = ( 7.787 * var_Y ) + ( 16.0 / 116.0 );
+				}
+				if ( var_Z > 0.008856 ) {
+					var_Z = Math.pow(var_Z, 1.0/3.0);
+				}
+				else {
+					var_Z = ( 7.787 * var_Z ) + ( 16.0 / 116.0 );
+				}
+
+				var_llab = ( 116.0 * var_Y ) - 16.0;
+				var_alab = 500.0 * ( var_X - var_Y );
+				var_blab = 200.0 * ( var_Y - var_Z );
+				l_lab=parseInt(var_llab);
+				a_lab=parseInt(var_alab);
+				b_lab=parseInt(var_blab);
+				
+				document.getElementById('sliderl').value = l_lab;
+				document.getElementById('slidera').value = a_lab;
+				document.getElementById('sliderbl').value = b_lab;
+				
+				document.getElementById('lablval').value = Math.round(l_lab);
+				document.getElementById('labaval').value = Math.round(a_lab);
+				document.getElementById('labbval').value = Math.round(b_lab);
+				
+				break;
+			default:
+				break;
+		}
+
+	}
+
+	function setRGB() {
+		var rgb = "rgb";
+		var r_rgb = document.getElementById('sliderr').value;
+		var g_rgb = document.getElementById('sliderg').value;
+		var b_rgb = document.getElementById('sliderb').value;
+		
+		document.getElementById("outer-div").style.backgroundColor = rgb2hex(r_rgb, g_rgb, b_rgb);
+		document.getElementById('inner-div').style.backgroundColor = rgb2hex(255-r_rgb,255-g_rgb,255-b_rgb);
+		
+		autoConv(rgb,r_rgb,g_rgb,b_rgb);
+	}
+	
+	function setCMY() {
+		var cmy = "cmy";
+		var c_cmy = document.getElementById('sliderc').value;
+		var m_cmy = document.getElementById('sliderm').value;
+		var y_cmy = document.getElementById('slidery').value;
+		
+		document.getElementById("outer-div").style.backgroundColor = rgb2hex(255-c_cmy,255-m_cmy,255-y_cmy);
+		document.getElementById('inner-div').style.backgroundColor = rgb2hex(c_cmy,m_cmy,y_cmy);
+		
+		autoConv(cmy,c_cmy,m_cmy,y_cmy);
+	}
+	
+	/* HSB - tato část kódu byla s drobnými úpravami převzata ze zdroj. kódů webového kalkulátoru na rapid-tables.com (https://www.rapidtables.com/convert/color/rgb-to-hsv.html) */
+	function setHSB() {
+		var hsb = "hsb";
+		var h_hsb = document.getElementById('sliderh').value;
+		var s_hsb = document.getElementById('sliders').value;
+		var b_hsb = document.getElementById('sliderbr').value;
+		
+		s_hsb/=100;
+		b_hsb/=100;
+		
+		var C = b_hsb*s_hsb;
+		
+		var hh = h_hsb/60;
+		
+		var X = C*(1-Math.abs(hh%2-1));
+		
+		var r,g,b;
+		r = g = b = 0;
+		
+		if( hh>=0 && hh<1 )
+			{
+				r = C;
+				g = X;
+			}
+			else if( hh>=1 && hh<2 )
+			{
+				r = X;
+				g = C;
+			}
+			else if( hh>=2 && hh<3 )
+			{
+				g = C;
+				b = X;
+			}
+			else if( hh>=3 && hh<4 )
+			{
+				g = X;
+				b = C;
+			}
+			else if( hh>=4 && hh<5 )
+			{
+				r = X;
+				b = C;
+			}
+			else
+			{
+				r = C;
+				b = X;
+			}
+			var m = b_hsb-C;
+			r += m;
+			g += m;
+			b += m;
+			r *= 255.0;
+			g *= 255.0;
+			b *= 255.0;
+			r = Math.round(r);
+			g = Math.round(g);
+			b = Math.round(b);
+			var hex = r*65536+g*256+b;
+			hex = hex.toString(16,6);
+			var len = hex.length;
+			var i;
+			if( len<6 )
+				for(i=0; i<6-len; i++)
+					hex = '0'+hex;
+		
+		document.getElementById("outer-div").style.backgroundColor = "#" + hex;
+		document.getElementById('inner-div').style.backgroundColor = rgb2hex(255-r,255-g,255-b);
+		
+		autoConv(hsb,r,g,b);
+	}
+	
+	/* YCbCr - část s matematickými vztahy opět převzata ze zdrojových kódů appletu Jindřicha Hlavatého. */
+	function setYCbCr() {
+		var ycbcr = "ycbcr";
+		
+		var y_ycbcr = document.getElementById('slideryl').value;
+		var cb_ycbcr = document.getElementById('slidercb').value;
+		var cr_ycbcr = document.getElementById('slidercr').value;
+		
+		var r_rgb = parseInt(1.0*y_ycbcr+0.0*cb_ycbcr+1.403*cr_ycbcr);
+		var g_rgb = parseInt(1.0*y_ycbcr-0.344*cb_ycbcr-0.714*cr_ycbcr);
+		var b_rgb = parseInt(1.0*y_ycbcr+1.77*cb_ycbcr+0.0*cr_ycbcr);
+		
+		if (r_rgb > 255) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (g_rgb > 255) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (b_rgb > 255) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (r_rgb < 0) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (g_rgb < 0) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (b_rgb < 0) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (detectedOverflow == false) {
+			YValBak = document.getElementById('slideryl').value;
+			CbValBak = document.getElementById('slidercb').value;
+			CrValBak = document.getElementById('slidercr').value;
+		}
+		detectedOverflow = false; recalculate = false;
+		
+		document.getElementById("outer-div").style.backgroundColor = rgb2hex(r_rgb, g_rgb, b_rgb);
+		document.getElementById('inner-div').style.backgroundColor = rgb2hex(255-r_rgb,255-g_rgb,255-b_rgb);
+		
+		autoConv(ycbcr,r_rgb,g_rgb,b_rgb);
+	}
+	
+	/* Lab - tato část kódu byla s drobnými úpravami převzata z appletu od Jindřicha Hlavatého. Prakticky totožná řešení (i s uvedenými komentáři) lze snadno dohledat na internetu, zejména z diskuzí na programátorské poradně Stack Overflow. */
+	function setLab() {
+		var lab = "lab";
+		
+		var l_lab = parseFloat(document.getElementById('sliderl').value);
+		var a_lab = parseFloat(document.getElementById('slidera').value);
+		var b_lab = parseFloat(document.getElementById('sliderbl').value);
+		
+		var var_R,var_G,var_B;
+		var R,G,B,X,Y,Z,pom;
+		var var_X,var_Y,var_Z;
+		var ref_X=95.047,ref_Y=100.0,ref_Z=108.883;
+		var_Y = (l_lab + 16.0)/116.0;
+		var_X = (a_lab / 500.0)+var_Y;
+		var_Z = var_Y - (b_lab / 200.0);
+
+		if ( Math.pow(var_Y, 3.0) > 0.008856 ) var_Y = Math.pow(var_Y, 3.0);
+		else                      var_Y = ( var_Y - 16.0 / 116.0 ) / 7.787;
+		if ( Math.pow(var_X, 3.0) > 0.008856 ) var_X = Math.pow(var_X, 3.0);
+		else                      var_X = ( var_X - 16.0 / 116.0 ) / 7.787;
+		if ( Math.pow(var_Z, 3.0) > 0.008856 ) var_Z = Math.pow(var_Z, 3.0);
+		else                      var_Z = ( var_Z - 16.0 / 116.0 ) / 7.787;
+
+		X = ref_X * var_X;     //ref_X =  95.047     Observer= 2°, Illuminant= D65
+		Y = ref_Y * var_Y;     //ref_Y = 100.000
+		Z = ref_Z * var_Z;     //ref_Z = 108.883
+
+
+		var_X = X / 100.0;      //X from 0 to  95.047      (Observer = 2°, Illuminant = D65)
+		var_Y = Y / 100.0;        //Y from 0 to 100.000
+		var_Z = Z / 100.0;        //Z from 0 to 108.883
+
+		var_R = var_X *  3.2406 + var_Y * -1.5372 + var_Z * -0.4986;
+		var_G = var_X * -0.9689 + var_Y *  1.8758 + var_Z *  0.0415;
+		var_B = var_X *  0.0557 + var_Y * -0.2040 + var_Z *  1.0570;
+
+		if ( var_R > 0.0031308 ) var_R = 1.055 * ( Math.pow(var_R, 1 / 2.4) ) - 0.055;
+		else                     var_R = 12.92 * var_R;
+		if ( var_G > 0.0031308 ) var_G = 1.055 * ( Math.pow(var_G, 1 / 2.4) ) - 0.055;
+		else                     var_G = 12.92 * var_G;
+		if ( var_B > 0.0031308 ) var_B = 1.055 * ( Math.pow(var_B, 1 / 2.4) ) - 0.055;
+		else                     var_B = 12.92 * var_B;
+
+		R = var_R * 255.0;
+		G = var_G * 255.0;
+		B = var_B * 255.0;
+		r_rgb=parseInt(R);
+		g_rgb=parseInt(G);
+		b_rgb=parseInt(B);	
+		
+		if (r_rgb > 255) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (g_rgb > 255) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (b_rgb > 255) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (r_rgb < 0) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (g_rgb < 0) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (b_rgb < 0) {detectedOverflow = true; restoreSliderValue(); recalculate = true; return;}
+		if (detectedOverflow == false) {
+			YValBak = document.getElementById('slideryl').value;
+			CbValBak = document.getElementById('slidercb').value;
+			CrValBak = document.getElementById('slidercr').value;
+		}
+		detectedOverflow = false; recalculate = false;
+	
+		document.getElementById("outer-div").style.backgroundColor = rgb2hex(r_rgb, g_rgb, b_rgb);
+		document.getElementById('inner-div').style.backgroundColor = rgb2hex(255-r_rgb,255-g_rgb,255-b_rgb);
+		
+		autoConv(lab,r_rgb,g_rgb,b_rgb);
+
+	}
+	
+	function restoreSliderValue() {
+		switch (lastMovedSlider) {
+			case "sliderl":
+				document.getElementById('sliderl').value = LValBak;
+				document.getElementById('lablval').value = LValBak;
+				break;
+			case "slidera":
+				document.getElementById('slidera').value = aValBak;
+				document.getElementById('labaval').value = aValBak;
+				break;
+			case "sliderbl":
+				document.getElementById('sliderbl').value = bValBak;
+				document.getElementById('labbval').value = bValBak;
+				break;
+			case "slideryl":
+				document.getElementById('slideryl').value = YValBak;
+				document.getElementById('ycbcryval').value = YValBak;
+				break;
+			case "slidercb":
+				document.getElementById('slidercb').value = CbValBak;
+				document.getElementById('ycbcrcbval').value = CbValBak;
+				break;
+			case "slidercr":
+				document.getElementById('slidercr').value = CrValBak;
+				document.getElementById('ycbcrcrval').value = CrValBak;
+				break;
+			default:
+				break;
+		}
+	}
+	
+	
+</script>
+</head>
+<body>
+
+<table id="parent">
+  <tr>
+    <td>RGB:
+	<table id="child">
+		<tr><td align="center">Red: <output id="rgbrval" for="sliderr">0</output><br>
+		<input type="range" id="sliderr" name="slidersrgb" orient="vertical" oninput="setRGB();rgbrval.value=sliderr.value;" value="0" min="0" max="255"/>
+		</td><td align="center">Green: <output id="rgbgval" for="sliderg">0</output><br>
+		<input type="range" id="sliderg" name="slidersrgb" orient="vertical" oninput="setRGB();rgbgval.value=sliderg.value;" value="0" min="0" max="255"/>
+		</td><td align="center">Blue: <output id="rgbbval" for="sliderb">0</output><br>
+		<input type="range" id="sliderb" name="slidersrgb" orient="vertical" oninput="setRGB();rgbbval.value=sliderb.value;" value="0" min="0" max="255"/>
+		</td></tr>
+	</table>
+	</td>
+    <td rowspan="2" colspan="2"><div id="outer-div"><div id="inner-div"></div></div></td>
+  </tr>
+  <tr>
+    <td>CMY:
+	<table id="child">
+		<tr><td align="center">C: <output id="cmycperc" for="sliderc">100</output>%<br>(<output id="cmycval" for="sliderc">255</output>)<br>
+		<input type="range" id="sliderc" name="sliderscmy" orient="vertical" oninput="setCMY();cmycval.value=sliderc.value;cmycperc.value=Math.round((sliderc.value/255)*100);" value="255" min="0" max="255"/>
+		</td><td align="center">M: <output id="cmymperc" for="sliderc">100</output>%<br>(<output id="cmymval" for="sliderm">255</output>)<br>
+		<input type="range" id="sliderm" name="sliderscmy" orient="vertical" oninput="setCMY();cmymval.value=sliderm.value;cmymperc.value=Math.round((sliderm.value/255)*100);" value="255" min="0" max="255"/>
+		</td><td align="center">Y: <output id="cmyyperc" for="sliderc">100</output>%<br>(<output id="cmyyval" for="slidery">255</output>)<br>
+		<input type="range" id="slidery" name="sliderscmy" orient="vertical" oninput="setCMY();cmyyval.value=slidery.value;cmyyperc.value=Math.round((slidery.value/255)*100);" value="255" min="0" max="255"/>
+		</td></tr>
+	</table>
+	</td>
+  </tr>
+  <tr>
+    <td>HSB:
+	<table id="child">
+		<tr><td align="center">H: <output id="hsbhval" for="sliderh">0</output>&deg;<br>
+		<input type="range" id="sliderh" name="slidershsb" orient="vertical" oninput="setHSB();hsbhval.value=sliderh.value;" value="0" min="0" max="360"/>
+		</td><td align="center">S: <output id="hsbsval" for="sliders">0</output>%<br>
+		<input type="range" id="sliders" name="slidershsb" orient="vertical" oninput="setHSB();hsbsval.value=sliders.value;" value="0" min="0" max="100"/>
+		</td><td align="center">B: <output id="hsbbval" for="sliderbr">0</output>%<br>
+		<input type="range" id="sliderbr" name="slidershsb" orient="vertical" oninput="setHSB();hsbbval.value=sliderbr.value;" value="0" min="0" max="100"/></td></tr>
+	</table>
+	</td>
+    <td>Lab:
+		<table id="child">
+		<tr><td align="center">L: <output id="lablval" for="sliderl">0</output><br>
+		<input type="range" id="sliderl" name="sliderslab" orient="vertical" oninput="lastMovedSlider='sliderl';setLab(); (recalculate == true) ? setLab() : recalculate = false; lablval.value=sliderl.value;" value="0" min="0" max="100"/>
+		</td><td align="center">a: <output id="labaval" for="slidera">0</output><br>
+		<input type="range" id="slidera" name="sliderslab" orient="vertical" oninput="lastMovedSlider='slidera';setLab(); (recalculate == true) ? setLab() : recalculate = false; labaval.value=slidera.value;" value="0" min="-86" max="98"/>
+		</td><td align="center">b: <output id="labbval" for="sliderbl">0</output><br>
+		<input type="range" id="sliderbl" name="sliderslab" orient="vertical" oninput="lastMovedSlider='sliderbl';setLab(); (recalculate == true) ? setLab() : recalculate = false; labbval.value=sliderbl.value;" value="0" min="-107" max="94"/>
+		</td></tr>
+	</table>
+	</td>
+    <td>YCbCr:
+		<table id="child">
+		<tr><td align="center">Y: <output id="ycbcryval" for="slideryl">0</output><br>
+		<input type="range" id="slideryl" name="slidersycbcr" orient="vertical" oninput="lastMovedSlider='slideryl';setYCbCr(); (recalculate == true) ? setYCbCr() : recalculate = false; ycbcryval.value=slideryl.value;" value="0" min="0" max="255"/>
+		</td><td align="center">Cb: <output id="ycbcrcbval" for="slidercb">0</output><br>
+		<input type="range" id="slidercb" name="slidersycbcr" orient="vertical" oninput="lastMovedSlider='slidercb';setYCbCr(); (recalculate == true) ? setYCbCr() : recalculate = false; ycbcrcbval.value=slidercb.value;" value="0" min="-127" max="127"/>
+		</td><td align="center">Cr: <output id="ycbcrcrval" for="slidercr">0</output><br>
+		<input type="range" id="slidercr" name="slidersycbcr" orient="vertical" oninput="lastMovedSlider='slidercr';setYCbCr(); (recalculate == true) ? setYCbCr() : recalculate = false; ycbcrcrval.value=slidercr.value;" value="0" min="-127" max="127"/>
+		</td></tr>
+	</table>
+	</td>
+  </tr>
+</table>
+
+</body>
+</html>
